@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         VENV = "venv"
-        DEPLOY_DIR = "/tmp/flask_deploy"
+        DEPLOY_DIR = "C:\\flask_deploy"
     }
 
     stages {
@@ -18,10 +18,10 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 echo 'Installing Python dependencies...'
-                sh '''
-                python3 -m venv $VENV
-                . $VENV/bin/activate
-                pip install --upgrade pip
+                bat '''
+                python -m venv %VENV%
+                call %VENV%\\Scripts\\activate
+                python -m pip install --upgrade pip
                 pip install -r requirements.txt
                 '''
             }
@@ -30,9 +30,9 @@ pipeline {
         stage('Run Unit Tests') {
             steps {
                 echo 'Running unit tests with pytest...'
-                sh '''
-                . $VENV/bin/activate
-                pytest
+                bat '''
+                call %VENV%\\Scripts\\activate
+                python -m pytest
                 '''
             }
         }
@@ -40,9 +40,10 @@ pipeline {
         stage('Build Application') {
             steps {
                 echo 'Preparing application for deployment...'
-                sh '''
-                mkdir -p build
-                cp -r app.py requirements.txt build/
+                bat '''
+                if not exist build mkdir build
+                copy app.py build\\
+                copy requirements.txt build\\
                 '''
             }
         }
@@ -50,20 +51,17 @@ pipeline {
         stage('Deploy Application') {
             steps {
                 echo 'Simulating deployment...'
-                sh '''
-                mkdir -p $DEPLOY_DIR
-                cp -r build/* $DEPLOY_DIR/
+                bat '''
+                if not exist %DEPLOY_DIR% mkdir %DEPLOY_DIR%
+                xcopy /Y /E build\\* %DEPLOY_DIR%\\
                 '''
             }
         }
     }
 
     post {
-        success {
-            echo 'Pipeline executed successfully!'
-        }
-        failure {
-            echo 'Pipeline failed. Check logs.'
-        }
+        success { echo 'Pipeline executed successfully!' }
+        failure { echo 'Pipeline failed. Check logs!' }
     }
 }
+
